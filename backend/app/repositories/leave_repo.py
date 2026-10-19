@@ -74,13 +74,12 @@ class LeaveRepository:
         )
         return list(rows), total
 
-    async def stats(self, to_hr_id: int) -> dict[str, int]:
+    async def stats(self, to_hr_id: int | None) -> dict[str, int]:
         counts = {s.value: 0 for s in LeaveStatus}
-        rows = await self.db.execute(
-            select(LeaveRequest.status, func.count())
-            .where(LeaveRequest.to_hr_id == to_hr_id)
-            .group_by(LeaveRequest.status)
-        )
+        stmt = select(LeaveRequest.status, func.count()).group_by(LeaveRequest.status)
+        if to_hr_id is not None:
+            stmt = stmt.where(LeaveRequest.to_hr_id == to_hr_id)
+        rows = await self.db.execute(stmt)
         for status, n in rows:
             counts[status.value] = n
         return counts
@@ -88,19 +87,18 @@ class LeaveRepository:
     async def decide(
         self,
         leave_id: int,
-        to_hr_id: int,
+        to_hr_id: int | None,
         status: LeaveStatus,
         reviewer_id: int,
         comment: str | None,
     ) -> bool:
         """Atomic: succeeds only if the request is still pending."""
+        conditions = [LeaveRequest.id == leave_id, LeaveRequest.status == LeaveStatus.pending]
+        if to_hr_id is not None:
+            conditions.append(LeaveRequest.to_hr_id == to_hr_id)
         res = await self.db.execute(
             update(LeaveRequest)
-            .where(
-                LeaveRequest.id == leave_id,
-                LeaveRequest.to_hr_id == to_hr_id,
-                LeaveRequest.status == LeaveStatus.pending,
-            )
+            .where(*conditions)
             .values(
                 status=status,
                 reviewed_by=reviewer_id,

@@ -22,6 +22,8 @@ class LeaveRequest(Base):
     start_date: Mapped[date]
     end_date: Mapped[date]
     body: Mapped[str] = mapped_column(Text)
+    ai_body: Mapped[str | None] = mapped_column(Text)
+    submitted_body: Mapped[str] = mapped_column(Text)
     status: Mapped[LeaveStatus] = mapped_column(
         Enum(LeaveStatus, native_enum=False, length=20), default=LeaveStatus.pending
     )

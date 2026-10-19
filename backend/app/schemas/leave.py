@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.enums import LeaveStatus
 
@@ -13,15 +13,20 @@ class RephraseRequest(BaseModel):
 
 
 class RephraseResponse(BaseModel):
-    body: str
+    ai_body: str
 
 
 class LeaveCreate(BaseModel):
-    to_hr_id: int = Field(gt=0)
+    recipient_id: int = Field(
+        gt=0,
+        validation_alias=AliasChoices("recipient_id", "to_hr_id"),
+    )
     leave_type: Literal["casual", "sick", "earned", "unpaid"]
     start_date: date
     end_date: date
     body: str = Field(min_length=3, max_length=2000)
+    ai_body: str | None = Field(default=None, max_length=2000)
+    submitted_body: str | None = Field(default=None, min_length=3, max_length=2000)
 
     @model_validator(mode="after")
     def check_dates(self):
@@ -29,6 +34,8 @@ class LeaveCreate(BaseModel):
             raise ValueError("end_date must be on or after start_date")
         if (self.end_date - self.start_date).days >= MAX_DAYS:
             raise ValueError(f"leave cannot exceed {MAX_DAYS} days")
+        if self.submitted_body is None:
+            self.submitted_body = self.body
         return self
 
 
@@ -43,7 +50,7 @@ class Decision(BaseModel):
         return self
 
 
-class EmployeeBrief(BaseModel):
+class UserBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
@@ -53,13 +60,15 @@ class EmployeeBrief(BaseModel):
 class LeaveOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    employee: EmployeeBrief
-    to_hr: EmployeeBrief
-    to_hr_id: int
+    employee: UserBrief
+    recipient: UserBrief = Field(validation_alias=AliasChoices("recipient", "to_hr"))
+    recipient_id: int = Field(validation_alias=AliasChoices("recipient_id", "to_hr_id"))
     leave_type: str
     start_date: date
     end_date: date
     body: str
+    ai_body: str | None
+    submitted_body: str
     status: LeaveStatus
     reviewed_by: int | None
     reviewed_at: datetime | None

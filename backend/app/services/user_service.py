@@ -14,8 +14,8 @@ class UserService:
     async def list(self, status: UserStatus | None, role: Role | None, limit: int, offset: int):
         return await self.users.search(status=status, role=role, limit=limit, offset=offset)
 
-    async def list_active_hr(self) -> list[User]:
-        return await self.users.list_active_hr()
+    async def list_active_recipients(self, exclude_user_id: int) -> list[User]:
+        return await self.users.list_active_recipients(exclude_user_id)
 
     async def update(self, admin: User, user_id: int, data: UserUpdate) -> User:
         if user_id == admin.id:

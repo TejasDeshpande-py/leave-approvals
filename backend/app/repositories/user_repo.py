@@ -12,19 +12,23 @@ class UserRepository:
     async def get_by_id(self, user_id: int) -> User | None:
         return await self.db.get(User, user_id)
 
-    async def get_active_hr(self, user_id: int) -> User | None:
+    async def get_active_recipient(self, user_id: int) -> User | None:
         return await self.db.scalar(
             select(User).where(
                 User.id == user_id,
-                User.role == Role.hr,
+                User.role.in_([Role.hr, Role.admin]),
                 User.status == UserStatus.active,
             )
         )
 
-    async def list_active_hr(self) -> list[User]:
+    async def list_active_recipients(self, exclude_user_id: int) -> list[User]:
         rows = await self.db.scalars(
             select(User)
-            .where(User.role == Role.hr, User.status == UserStatus.active)
+            .where(
+                User.role.in_([Role.hr, Role.admin]),
+                User.status == UserStatus.active,
+                User.id != exclude_user_id,
+            )
             .order_by(User.name, User.id)
         )
         return list(rows)

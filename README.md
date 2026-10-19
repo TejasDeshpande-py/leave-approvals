@@ -13,9 +13,10 @@ An asynchronous REST API for employee leave requests and admin-managed account a
 | Access | Endpoints |
 | --- | --- |
 | Any active user | `GET /api/v1/auth/me` |
-| Employee | `GET /api/v1/leaves/hr-recipients`, `POST /api/v1/leaves/rephrase`, `POST /api/v1/leaves`, `GET /api/v1/leaves/me` |
-| HR | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` |
-| Assigned HR or the request owner | `GET /api/v1/leaves/{leave_id}` |
+| Employee, HR, or admin | `GET /api/v1/leaves/recipients`, `POST /api/v1/leaves/rephrase`, `POST /api/v1/leaves`, `GET /api/v1/leaves/me` |
+| Assigned HR | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` |
+| Admin | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` for all requests |
+| HR/admin or the request owner | `GET /api/v1/leaves/{leave_id}` |
 | Admin | `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{user_id}` |
 
 The API is mounted under `/api/v1`. Interactive API documentation is available at `/docs` when the server is running.
@@ -28,22 +29,25 @@ The API is mounted under `/api/v1`. Interactive API documentation is available a
 
 The requirements file includes the application dependencies and supporting packages. `greenlet` is included for SQLAlchemy's asyncio support. The database URL uses the `aiomysql` async driver.
 
-## Setup (Windows PowerShell)
+## Setup (Bash)
 
-Run these commands from the repository root:
+Create and activate the virtual environment from the repository root, then enter `backend/` for backend commands:
 
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```bash
+python -m venv .venv
+# Git Bash on Windows
+source .venv/Scripts/activate
+# macOS/Linux instead use: source .venv/bin/activate
 python -m pip install --upgrade pip
+cd backend
 python -m pip install -r requirements.txt
-Copy-Item .env.example .env
+cp .env.example .env
 ```
 
 Edit `.env` and set `DATABASE_URL` to the MySQL database you created. The example URL is:
 
 ```dotenv
-DATABASE_URL=mysql+aiomysql://leave_app:change-me@localhost:3306/leave_db
+DATABASE_URL=mysql+aiomysql://leave_app:change-me@localhost:3307/leave_db
 ```
 
 Replace the sample database credentials and change `JWT_SECRET` to a long, random value. The settings are:
@@ -58,21 +62,21 @@ Replace the sample database credentials and change `JWT_SECRET` to a long, rando
 | `GROQ_API_KEY` | Groq API key used for optional leave-note rephrasing |
 | `GROQ_MODEL` | Groq model used for rephrasing; defaults to `llama-3.3-70b-versatile` |
 
-The `.env` file is local configuration and is ignored by Git. Do not commit real credentials or production secrets.
+The `.env` file is local configuration in `backend/` and is ignored by Git. Do not commit real credentials or production secrets.
 
-The employee leave request includes `to_hr_id` (selected from `GET /api/v1/leaves/hr-recipients`) and `body`. Responses include the mapped `to_hr` object with the HR user's name and email. The rephrase endpoint accepts and returns `body`; it sends the draft to Groq but does not create or submit a leave request. The client should replace its draft only when the employee accepts the returned text.
+Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin include `recipient_id` (selected from `GET /api/v1/leaves/recipients`). Active HR and admin accounts can be recipients. The API still accepts the legacy `to_hr_id` request field. Responses include the mapped `recipient` name and email. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
 
 ## Initialize the Database
 
-After configuring `.env` and creating the MySQL database, create any missing tables:
+Run these commands from `backend/`. After configuring `.env` and creating the MySQL database, create any missing tables:
 
-```powershell
+```bash
 python -m scripts.init_db
 ```
 
 The initializer uses SQLAlchemy `create_all`, which creates missing tables but does not alter existing tables. During development, use `--reset` to drop and recreate this application's tables:
 
-```powershell
+```bash
 python -m scripts.init_db --reset
 ```
 
@@ -82,7 +86,7 @@ python -m scripts.init_db --reset
 
 Create a trusted, active account by running:
 
-```powershell
+```bash
 python -m scripts.seed_users --email admin@example.com --name "Admin" --role admin
 ```
 
@@ -92,7 +96,7 @@ The script prompts for a password unless `SEED_PASSWORD` is set in `.env`. Use a
 
 Start the development server from the repository root:
 
-```powershell
+```bash
 python -m uvicorn app.main:app --reload
 ```
 
@@ -105,16 +109,11 @@ The server listens at `http://127.0.0.1:8000` by default.
 ## Project Layout
 
 ```text
-app/
-  api/
-    deps.py             Authentication and dependency injection
-    v1/                 Versioned auth, leave, and admin routes
-  core/                 Settings, security, and application errors
-  db/                   SQLAlchemy base and async session setup
-  models/               User and leave-request ORM models
-  repositories/         Database access
-  schemas/              Request and response validation
-  services/             Business logic
-scripts/                Database initialization and admin seeding
-requirements.txt        Pinned Python dependencies
+backend/
+  app/                  FastAPI app, routes, models, and business logic
+  scripts/              Database initialization and admin seeding
+  requirements.txt      Pinned Python dependencies
+  .env.example          Backend configuration template
+.venv/                  Repository virtual environment
+README.md               Project setup and API guide
 ```
