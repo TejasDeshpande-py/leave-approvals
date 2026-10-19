@@ -1,0 +1,65 @@
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+const TOKEN_KEY = 'leave-office-access-token'
+const inFlightGetRequests = new Map<string, Promise<unknown>>()
+
+export function getAccessToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setAccessToken(token: string | null) {
+  if (token) localStorage.setItem(TOKEN_KEY, token)
+  else localStorage.removeItem(TOKEN_KEY)
+}
+
+function errorMessage(payload: unknown, status: number) {
+  if (payload && typeof payload === 'object' && 'detail' in payload) {
+    const detail = payload.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) return detail.map((item) => item?.msg ?? 'Invalid request').join('. ')
+  }
+  return `Request failed (${status})`
+}
+
+export function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getAccessToken()
+  const method = (init.method ?? 'GET').toUpperCase()
+  const key = method === 'GET' ? `${token ?? 'anonymous'}:${path}` : null
+  if (key) {
+    const existing = inFlightGetRequests.get(key)
+    if (existing) return existing as Promise<T>
+  }
+
+  const request = performRequest<T>(path, init, token)
+  if (!key) return request
+
+  inFlightGetRequests.set(key, request)
+  const removeRequest = () => {
+    if (inFlightGetRequests.get(key) === request) inFlightGetRequests.delete(key)
+  }
+  void request.then(removeRequest, removeRequest)
+  return request
+}
+
+async function performRequest<T>(path: string, init: RequestInit, token: string | null): Promise<T> {
+  const headers = new Headers(init.headers)
+  if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers })
+  } catch {
+    throw new Error('Cannot reach the backend. Start the API at http://127.0.0.1:8000.')
+  }
+  const payload: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(errorMessage(payload, response.status))
+  return payload as T
+}
+
+export function postJson<T>(path: string, body: unknown) {
+  return apiRequest<T>(path, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function patchJson<T>(path: string, body: unknown) {
+  return apiRequest<T>(path, { method: 'PATCH', body: JSON.stringify(body) })
+}

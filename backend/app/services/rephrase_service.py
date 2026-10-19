@@ -17,14 +17,16 @@ class RephraseService:
                         {
                             "role": "system",
                             "content": (
-                                "Rewrite the employee's leave note in clear, professional language. "
-                                "Preserve its meaning and all facts. Do not add reasons, dates, or "
-                                "other details. Return only the rewritten note."
+                                "Rephrase the employee's leave note; do not copy it verbatim. "
+                                "Correct spelling, grammar, capitalization, and punctuation, and make "
+                                "the wording clear, concise, and professional. Preserve the original "
+                                "meaning and every stated fact. Do not invent or infer dates, names, "
+                                "medical details, reasons, or promises. Return only the rewritten note."
                             ),
                         },
                         {"role": "user", "content": body},
                     ],
-                    temperature=0.2,
+                    temperature=0.35,
                 )
         except APIError as exc:
             raise ServiceUnavailable("Leave-note rephrasing is temporarily unavailable") from exc

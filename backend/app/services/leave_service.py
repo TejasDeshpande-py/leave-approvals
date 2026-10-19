@@ -1,11 +1,12 @@
 from datetime import date
 
 from app.core.exceptions import Conflict, Forbidden, NotFound
+from app.core.security import decode_recipient_key
 from app.enums import LeaveStatus, Role
 from app.models import LeaveRequest, User
 from app.repositories.leave_repo import LeaveRepository
 from app.repositories.user_repo import UserRepository
-from app.schemas.leave import Decision, LeaveCreate
+from app.schemas.leave import Decision, LeaveCreate, LeaveNoteUpdate
 
 
 class LeaveService:
@@ -14,21 +15,53 @@ class LeaveService:
         self.users = users
 
     async def submit(self, user: User, data: LeaveCreate) -> LeaveRequest:
-        if data.recipient_id == user.id:
+        try:
+            recipient_id = decode_recipient_key(data.recipient_key) if data.recipient_key else data.recipient_id
+        except ValueError as exc:
+            raise NotFound("Selected recipient not found") from exc
+        if recipient_id is None:
+            raise NotFound("Selected recipient not found")
+        if recipient_id == user.id:
             raise Forbidden("You cannot send a leave request to yourself")
-        if not await self.users.get_active_recipient(data.recipient_id):
+        if not await self.users.get_active_recipient(recipient_id):
             raise NotFound("Selected HR or admin recipient not found")
         if await self.leaves.has_overlap(user.id, data.start_date, data.end_date):
             raise Conflict("You already have a pending or approved request overlapping these dates")
-        leave_data = data.model_dump(exclude={"recipient_id"})
+        leave_data = data.model_dump(exclude={"recipient_id", "recipient_key"})
         leave = await self.leaves.add(
-            LeaveRequest(employee_id=user.id, to_hr_id=data.recipient_id, **leave_data)
+            LeaveRequest(employee_id=user.id, to_hr_id=recipient_id, **leave_data)
         )
         await self.leaves.commit()
         return leave
 
     async def my_leaves(self, user: User, status: LeaveStatus | None, limit: int, offset: int):
         return await self.leaves.search(employee_id=user.id, status=status, limit=limit, offset=offset)
+
+    async def update_note(self, user: User, leave_id: int, data: LeaveNoteUpdate) -> LeaveRequest:
+        leave = await self.leaves.get(leave_id)
+        if not leave:
+            raise NotFound("Leave request not found")
+        if leave.employee_id != user.id:
+            raise Forbidden("You can only edit your own leave requests")
+        if leave.status != LeaveStatus.pending:
+            raise Conflict("Only pending leave requests can be edited")
+
+        values = data.model_dump(exclude_unset=True)
+        if not values:
+            raise Conflict("Provide at least one note field to update")
+        if "submitted_body" not in values:
+            if "body" in values:
+                values["submitted_body"] = values["body"]
+            elif values.get("ai_body"):
+                values["submitted_body"] = values["ai_body"]
+
+        if not await self.leaves.update_note_if_pending(leave_id, user.id, values):
+            raise Conflict("This leave request is no longer pending")
+        await self.leaves.commit()
+        updated = await self.leaves.get(leave_id)
+        if not updated:
+            raise NotFound("Leave request not found")
+        return updated
 
     async def get(self, user: User, leave_id: int) -> LeaveRequest:
         leave = await self.leaves.get(leave_id)

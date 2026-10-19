@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from app.core.exceptions import Forbidden, NotFound
+from app.core.security import create_recipient_key
 from app.enums import Role, UserStatus
 from app.models import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.admin import UserUpdate
+from app.schemas.leave import RecipientOption
 
 
 class UserService:
@@ -14,8 +16,16 @@ class UserService:
     async def list(self, status: UserStatus | None, role: Role | None, limit: int, offset: int):
         return await self.users.search(status=status, role=role, limit=limit, offset=offset)
 
-    async def list_active_recipients(self, exclude_user_id: int) -> list[User]:
-        return await self.users.list_active_recipients(exclude_user_id)
+    async def list_active_recipients(self, exclude_user_id: int) -> list[RecipientOption]:
+        users = await self.users.list_active_recipients(exclude_user_id)
+        return [
+            RecipientOption(
+                recipient_key=create_recipient_key(user.id),
+                name=user.name,
+                role=user.role,
+            )
+            for user in users
+        ]
 
     async def update(self, admin: User, user_id: int, data: UserUpdate) -> User:
         if user_id == admin.id:

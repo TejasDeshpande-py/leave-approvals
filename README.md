@@ -64,7 +64,7 @@ Replace the sample database credentials and change `JWT_SECRET` to a long, rando
 
 The `.env` file is local configuration in `backend/` and is ignored by Git. Do not commit real credentials or production secrets.
 
-Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin include `recipient_id` (selected from `GET /api/v1/leaves/recipients`). Active HR and admin accounts can be recipients. The API still accepts the legacy `to_hr_id` request field. Responses include the mapped `recipient` name and email. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
+Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin include an opaque `recipient_key` selected from `GET /api/v1/leaves/recipients`; the backend resolves it to the selected active HR/admin account. Recipient options and leave responses expose only recipient name and role, not their numeric database ID or email. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
 
 ## Initialize the Database
 
@@ -81,6 +81,12 @@ python -m scripts.init_db --reset
 ```
 
 `--reset` permanently deletes all data in those tables, including users and leave requests. Use it only when rebuilding a disposable development database.
+
+For the leave-note fields added after initial setup, update an existing database without deleting data:
+
+```bash
+python -m scripts.upgrade_leave_schema
+```
 
 ## Create an Admin User
 

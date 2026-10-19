@@ -3,33 +3,37 @@ from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
-from app.enums import LeaveStatus
+from app.enums import LeaveStatus, Role
 
 MAX_DAYS = 60
 
 
 class RephraseRequest(BaseModel):
-    body: str = Field(min_length=3, max_length=2000)
+    body: str = Field(min_length=3, max_length=3000)
 
 
 class RephraseResponse(BaseModel):
-    ai_body: str
+    ai_body: str = Field(max_length=3000)
 
 
 class LeaveCreate(BaseModel):
-    recipient_id: int = Field(
+    recipient_key: str | None = Field(default=None, min_length=20, max_length=256)
+    recipient_id: int | None = Field(
+        default=None,
         gt=0,
         validation_alias=AliasChoices("recipient_id", "to_hr_id"),
     )
     leave_type: Literal["casual", "sick", "earned", "unpaid"]
     start_date: date
     end_date: date
-    body: str = Field(min_length=3, max_length=2000)
-    ai_body: str | None = Field(default=None, max_length=2000)
-    submitted_body: str | None = Field(default=None, min_length=3, max_length=2000)
+    body: str = Field(min_length=3, max_length=3000)
+    ai_body: str | None = Field(default=None, max_length=3000)
+    submitted_body: str | None = Field(default=None, min_length=3, max_length=3000)
 
     @model_validator(mode="after")
     def check_dates(self):
+        if (self.recipient_key is None) == (self.recipient_id is None):
+            raise ValueError("provide exactly one recipient_key")
         if self.end_date < self.start_date:
             raise ValueError("end_date must be on or after start_date")
         if (self.end_date - self.start_date).days >= MAX_DAYS:
@@ -37,6 +41,12 @@ class LeaveCreate(BaseModel):
         if self.submitted_body is None:
             self.submitted_body = self.body
         return self
+
+
+class LeaveNoteUpdate(BaseModel):
+    body: str | None = Field(default=None, min_length=3, max_length=3000)
+    ai_body: str | None = Field(default=None, max_length=3000)
+    submitted_body: str | None = Field(default=None, min_length=3, max_length=3000)
 
 
 class Decision(BaseModel):
@@ -50,24 +60,31 @@ class Decision(BaseModel):
         return self
 
 
-class UserBrief(BaseModel):
+class EmployeeBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
     email: EmailStr
 
 
+class RecipientBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    role: Role
+
+
+class RecipientOption(RecipientBrief):
+    recipient_key: str
+
+
 class LeaveOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    employee: UserBrief
-    recipient: UserBrief = Field(validation_alias=AliasChoices("recipient", "to_hr"))
-    recipient_id: int = Field(validation_alias=AliasChoices("recipient_id", "to_hr_id"))
+    employee: EmployeeBrief
+    recipient: RecipientBrief = Field(validation_alias=AliasChoices("recipient", "to_hr"))
     leave_type: str
     start_date: date
     end_date: date
-    body: str
-    ai_body: str | None
     submitted_body: str
     status: LeaveStatus
     reviewed_by: int | None

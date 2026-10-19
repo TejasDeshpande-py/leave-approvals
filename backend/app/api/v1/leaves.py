@@ -14,11 +14,12 @@ from app.models import User
 from app.schemas.leave import (
     Decision,
     LeaveCreate,
+    LeaveNoteUpdate,
     LeaveOut,
     LeavePage,
+    RecipientOption,
     RephraseRequest,
     RephraseResponse,
-    UserBrief,
 )
 from app.services.leave_service import LeaveService
 from app.services.rephrase_service import RephraseService
@@ -36,8 +37,8 @@ async def rephrase_leave_reason(
     return RephraseResponse(ai_body=await svc.rephrase(body.body))
 
 
-@router.get("/hr-recipients", response_model=list[UserBrief], include_in_schema=False)
-@router.get("/recipients", response_model=list[UserBrief])
+@router.get("/hr-recipients", response_model=list[RecipientOption], include_in_schema=False)
+@router.get("/recipients", response_model=list[RecipientOption])
 async def list_recipients(
     user: User = Depends(require_role(Role.employee, Role.hr, Role.admin)),
     svc: UserService = Depends(get_user_service),
@@ -100,6 +101,16 @@ async def get_leave(
     svc: LeaveService = Depends(get_leave_service),
 ):
     return await svc.get(user, leave_id)
+
+
+@router.patch("/{leave_id}", response_model=LeaveOut)
+async def update_leave_note(
+    leave_id: int,
+    body: LeaveNoteUpdate,
+    user: User = Depends(require_role(Role.employee, Role.hr, Role.admin)),
+    svc: LeaveService = Depends(get_leave_service),
+):
+    return await svc.update_note(user, leave_id, body)
 
 
 @router.patch("/{leave_id}/decision", response_model=LeaveOut)

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     seed_password: str | None = None  # dev-only, used by scripts/seed_users.py
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-20b"
 
 
 settings = Settings()

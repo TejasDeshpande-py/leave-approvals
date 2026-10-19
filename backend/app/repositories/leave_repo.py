@@ -32,6 +32,23 @@ class LeaveRepository:
         await self.db.flush()
         return await self.get(leave.id)
 
+    async def update_note_if_pending(
+        self,
+        leave_id: int,
+        employee_id: int,
+        values: dict[str, str | None],
+    ) -> bool:
+        result = await self.db.execute(
+            update(LeaveRequest)
+            .where(
+                LeaveRequest.id == leave_id,
+                LeaveRequest.employee_id == employee_id,
+                LeaveRequest.status == LeaveStatus.pending,
+            )
+            .values(**values)
+        )
+        return result.rowcount == 1
+
     async def has_overlap(self, employee_id: int, start: date, end: date) -> bool:
         stmt = select(func.count()).select_from(LeaveRequest).where(
             LeaveRequest.employee_id == employee_id,
