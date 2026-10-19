@@ -103,14 +103,14 @@ The script prompts for a password unless `SEED_PASSWORD` is set in `.env`. Use a
 Start the development server from the repository root:
 
 ```bash
-python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
-The server listens at `http://127.0.0.1:8000` by default.
+The server listens at `http://127.0.0.1:8001`.
 
-- API documentation: `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/health`
-- API base path: `http://127.0.0.1:8000/api/v1`
+- API documentation: `http://127.0.0.1:8001/docs`
+- Health check: `http://127.0.0.1:8001/health`
+- API base path: `http://127.0.0.1:8001/api/v1`
 
 ## Project Layout
 

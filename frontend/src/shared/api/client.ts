@@ -49,7 +49,7 @@ async function performRequest<T>(path: string, init: RequestInit, token: string 
   try {
     response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   } catch {
-    throw new Error('Cannot reach the backend. Start the API at http://127.0.0.1:8000.')
+    throw new Error('Cannot reach the backend. Start the API at http://127.0.0.1:8001.')
   }
   const payload: unknown = await response.json().catch(() => null)
   if (!response.ok) throw new Error(errorMessage(payload, response.status))
