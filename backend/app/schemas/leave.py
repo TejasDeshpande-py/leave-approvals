@@ -33,7 +33,7 @@ class LeaveCreate(BaseModel):
     @model_validator(mode="after")
     def check_dates(self):
         if (self.recipient_key is None) == (self.recipient_id is None):
-            raise ValueError("provide exactly one recipient_key")
+            raise ValueError("provide exactly one recipient_id or recipient_key")
         if self.end_date < self.start_date:
             raise ValueError("end_date must be on or after start_date")
         if (self.end_date - self.start_date).days >= MAX_DAYS:
@@ -74,7 +74,7 @@ class RecipientBrief(BaseModel):
 
 
 class RecipientOption(RecipientBrief):
-    recipient_key: str
+    id: int
 
 
 class LeaveOut(BaseModel):

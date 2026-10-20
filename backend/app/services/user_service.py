@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from app.core.exceptions import Forbidden, NotFound
-from app.core.security import create_recipient_key
 from app.enums import Role, UserStatus
 from app.models import User
 from app.repositories.user_repo import UserRepository
@@ -20,7 +19,7 @@ class UserService:
         users = await self.users.list_active_recipients(exclude_user_id)
         return [
             RecipientOption(
-                recipient_key=create_recipient_key(user.id),
+                id=user.id,
                 name=user.name,
                 role=user.role,
             )

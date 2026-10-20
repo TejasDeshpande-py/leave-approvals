@@ -47,6 +47,11 @@ class AccessTokenClaims(NamedTuple):
     role: int
 
 
+class TokenPair(NamedTuple):
+    access_token: str
+    refresh_token: str
+
+
 def create_access_token(user_id: int, name: str, email: str, role: Role) -> str:
     now = datetime.now(timezone.utc)
     payload = {
@@ -54,10 +59,29 @@ def create_access_token(user_id: int, name: str, email: str, role: Role) -> str:
         "name": name,
         "email": email,
         "role": ROLE_CLAIM_BY_ROLE[role],
+        "typ": "access",
         "iat": now,
         "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def create_refresh_token(user_id: int) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "typ": "refresh",
+        "iat": now,
+        "exp": now + timedelta(days=settings.refresh_token_expire_days),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def create_token_pair(user_id: int, name: str, email: str, role: Role) -> TokenPair:
+    return TokenPair(
+        access_token=create_access_token(user_id, name, email, role),
+        refresh_token=create_refresh_token(user_id),
+    )
 
 
 def decode_access_token(token: str) -> AccessTokenClaims:
@@ -68,6 +92,8 @@ def decode_access_token(token: str) -> AccessTokenClaims:
         options={"require": ["exp", "sub", "name", "email", "role"]},
     )
     try:
+        if payload.get("typ", "access") != "access":
+            raise ValueError("Invalid token type")
         user_id = int(payload["sub"])
         name = payload["name"]
         email = payload["email"]
@@ -82,3 +108,19 @@ def decode_access_token(token: str) -> AccessTokenClaims:
     ):
         raise ValueError("Invalid token claims")
     return AccessTokenClaims(user_id, name, email, role)
+
+
+def decode_refresh_token(token: str) -> int:
+    payload = jwt.decode(
+        token,
+        settings.jwt_secret,
+        algorithms=[settings.jwt_algorithm],
+        options={"require": ["exp", "sub", "typ"]},
+    )
+    try:
+        user_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("Invalid token claims") from exc
+    if user_id <= 0 or payload["typ"] != "refresh":
+        raise ValueError("Invalid token claims")
+    return user_id

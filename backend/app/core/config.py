@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    refresh_cookie_secure: bool = False
+    frontend_origin: str = "http://localhost:5173"
     seed_password: str | None = None  # dev-only, used by scripts/seed_users.py
     groq_api_key: str | None = None
     groq_model: str = "openai/gpt-oss-20b"

@@ -1,14 +1,19 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
-const TOKEN_KEY = 'leave-office-access-token'
 const inFlightGetRequests = new Map<string, Promise<unknown>>()
+let accessToken: string | null = null
+let refreshInFlight: Promise<string> | null = null
 
 export function getAccessToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  return accessToken
 }
 
 export function setAccessToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+  accessToken = token
+}
+
+export function clearLegacyTokens() {
+  localStorage.removeItem('leave-office-access-token')
+  localStorage.removeItem('leave-office-refresh-token')
 }
 
 function errorMessage(payload: unknown, status: number) {
@@ -40,18 +45,61 @@ export function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> 
   return request
 }
 
-async function performRequest<T>(path: string, init: RequestInit, token: string | null): Promise<T> {
+async function sendRequest(path: string, init: RequestInit, token: string | null) {
   const headers = new Headers(init.headers)
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   let response: Response
   try {
-    response = await fetch(`${API_BASE}${path}`, { ...init, headers })
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' })
   } catch {
     throw new Error('Cannot reach the backend. Start the API at http://127.0.0.1:8001.')
   }
   const payload: unknown = await response.json().catch(() => null)
+  return { response, payload }
+}
+
+async function refreshAccessToken(): Promise<string> {
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = (async () => {
+    const { response, payload } = await sendRequest('/auth/refresh', { method: 'POST' }, null)
+    if (!response.ok) {
+      if (response.status === 401) {
+        setAccessToken(null)
+        window.dispatchEvent(new Event('leave-office-auth-expired'))
+      }
+      throw new Error(errorMessage(payload, response.status))
+    }
+    if (
+      !payload || typeof payload !== 'object' ||
+      !('access_token' in payload) || typeof payload.access_token !== 'string'
+    ) {
+      throw new Error('The backend returned an invalid token response.')
+    }
+
+    setAccessToken(payload.access_token)
+    return payload.access_token
+  })()
+  void refreshInFlight.then(
+    () => { refreshInFlight = null },
+    () => { refreshInFlight = null },
+  )
+  return refreshInFlight
+}
+
+async function performRequest<T>(path: string, init: RequestInit, token: string | null): Promise<T> {
+  let { response, payload } = await sendRequest(path, init, token)
+  const canRefresh = !path.startsWith('/auth/') && response.status === 401
+  if (canRefresh) {
+    const refreshedToken = await refreshAccessToken()
+    ;({ response, payload } = await sendRequest(path, init, refreshedToken))
+    if (response.status === 401) {
+      setAccessToken(null)
+      window.dispatchEvent(new Event('leave-office-auth-expired'))
+    }
+  }
   if (!response.ok) throw new Error(errorMessage(payload, response.status))
   return payload as T
 }

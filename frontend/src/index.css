@@ -213,3 +213,16 @@
 .leave-edit-modal .secondary-button:hover:not(:disabled){border-color:rgba(248,113,113,.42);background:rgba(127,29,29,.26)}
 @media(max-width:700px){.leave-edit-modal{padding:1.1rem}.leave-edit-modal .body-version textarea{min-height:8rem}}
 @media(max-width:700px){.details-grid{grid-template-columns:1fr}.table-actions{flex-wrap:nowrap}}
+.workspace .profile-hero{gap:.75rem;padding:.9rem 1rem}
+.workspace .profile-avatar{width:2.5rem;height:2.5rem;font-size:.8rem}
+.workspace .profile-grid{gap:.5rem .75rem;padding:.75rem 1rem}
+.workspace .profile-item{gap:.15rem;padding:.55rem .7rem}
+.password-panel{margin-top:1rem;padding:1rem}
+.password-panel-heading h2{margin:0;font-size:1rem}
+.password-panel-heading p{margin:.25rem 0 .9rem;color:#94a3b8;font-size:.78rem}
+.password-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}
+.password-fields .field{align-self:start;align-content:start;margin-bottom:.55rem}
+.password-fields .field input{min-height:2.55rem}
+.password-form-actions{display:flex;justify-content:flex-end;margin-top:.25rem}
+.password-panel .alert{margin-bottom:.75rem}
+@media(max-width:800px){.password-fields{grid-template-columns:1fr}}

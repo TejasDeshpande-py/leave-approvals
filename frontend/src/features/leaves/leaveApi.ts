@@ -2,7 +2,7 @@ import { apiRequest, patchJson, postJson } from '../../shared/api/client'
 import type { LeaveRequest, LeaveStatus, Page, RecipientOption } from '../../shared/types'
 
 export interface LeaveDraft {
-  recipient_key: string
+  recipient_id: number
   leave_type: string
   start_date: string
   end_date: string

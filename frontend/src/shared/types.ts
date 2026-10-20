@@ -15,7 +15,7 @@ export type EmployeeBrief = UserBrief
 export type RecipientSummary = Pick<User, 'name' | 'role'>
 
 export interface RecipientOption extends RecipientSummary {
-  recipient_key: string
+  id: number
 }
 
 export interface LeaveRequest {

@@ -8,11 +8,14 @@ An asynchronous REST API for employee leave requests and admin-managed account a
 - Registration requires a `@triconinfotech.com` email and a password with at least 8 characters, including a letter, digit, uppercase letter, and special symbol.
 - Admin users can list users with optional role/status filters and update a user's role or active/disabled status.
 - Employees can choose an active HR recipient, write and submit a leave request, view its status, and access their profile. HR users can review requests assigned to them and view their own leave statistics.
-- Authentication uses bearer tokens containing the user's name, email, and numeric role (`1` admin, `2` HR, `3` employee). The API checks those claims against the active database user.
+- Authentication uses 30-minute access tokens held only in frontend memory and 7-day refresh tokens stored in an `HttpOnly` cookie. The frontend automatically refreshes expired access tokens. The API checks access-token claims against the active database user.
 
 | Access | Endpoints |
 | --- | --- |
 | Any active user | `GET /api/v1/auth/me` |
+| Public | `POST /api/v1/auth/login`, `POST /api/v1/auth/register` |
+| Authenticated user | `PATCH /api/v1/auth/password` |
+| Refresh cookie | `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout` |
 | Employee, HR, or admin | `GET /api/v1/leaves/recipients`, `POST /api/v1/leaves/rephrase`, `POST /api/v1/leaves`, `GET /api/v1/leaves/me` |
 | Assigned HR | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` |
 | Admin | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` for all requests |
@@ -58,11 +61,16 @@ Replace the sample database credentials and change `JWT_SECRET` to a long, rando
 | `JWT_SECRET` | Secret used to sign access tokens; replace the example value |
 | `JWT_ALGORITHM` | Token algorithm; defaults to `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes; defaults to `30` |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh-token lifetime in days; defaults to `7` |
+| `REFRESH_COOKIE_SECURE` | Set the refresh cookie's `Secure` flag; enable for HTTPS production deployments |
+| `FRONTEND_ORIGIN` | Allowed frontend origin for credentialed API requests; defaults to `http://localhost:5173` |
 | `SEED_PASSWORD` | Optional development password for the seed script; if unset, the script prompts securely |
 | `GROQ_API_KEY` | Groq API key used for optional leave-note rephrasing |
 | `GROQ_MODEL` | Groq model used for rephrasing; defaults to `llama-3.3-70b-versatile` |
 
 The `.env` file is local configuration in `backend/` and is ignored by Git. Do not commit real credentials or production secrets.
+
+The frontend keeps access tokens in memory and clears legacy token values from `localStorage`. On startup, one `GET /api/v1/auth/me` call validates the access token or restores the session from the refresh cookie and returns the user together with a fresh access token. The refresh token is sent only in an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/v1/auth`; logout clears that cookie. For production, serve over HTTPS and set `REFRESH_COOKIE_SECURE=true`.
 
 Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin include an opaque `recipient_key` selected from `GET /api/v1/leaves/recipients`; the backend resolves it to the selected active HR/admin account. Recipient options and leave responses expose only recipient name and role, not their numeric database ID or email. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
 
