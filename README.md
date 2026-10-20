@@ -24,6 +24,8 @@ An asynchronous REST API for employee leave requests and admin-managed account a
 
 The API is mounted under `/api/v1`. Interactive API documentation is available at `/docs` when the server is running.
 
+See [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) for the full project structure, authentication and role model, database schema, setup, and detailed API reference.
+
 ## Requirements
 
 - Python 3.12 or newer
@@ -66,13 +68,13 @@ Replace the sample database credentials and change `JWT_SECRET` to a long, rando
 | `FRONTEND_ORIGIN` | Allowed frontend origin for credentialed API requests; defaults to `http://localhost:5173` |
 | `SEED_PASSWORD` | Optional development password for the seed script; if unset, the script prompts securely |
 | `GROQ_API_KEY` | Groq API key used for optional leave-note rephrasing |
-| `GROQ_MODEL` | Groq model used for rephrasing; defaults to `llama-3.3-70b-versatile` |
+| `GROQ_MODEL` | Groq model used for rephrasing; defaults to `openai/gpt-oss-20b` |
 
 The `.env` file is local configuration in `backend/` and is ignored by Git. Do not commit real credentials or production secrets.
 
 The frontend keeps access tokens in memory and clears legacy token values from `localStorage`. On startup, one `GET /api/v1/auth/me` call validates the access token or restores the session from the refresh cookie and returns the user together with a fresh access token. The refresh token is sent only in an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/v1/auth`; logout clears that cookie. For production, serve over HTTPS and set `REFRESH_COOKIE_SECURE=true`.
 
-Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin include an opaque `recipient_key` selected from `GET /api/v1/leaves/recipients`; the backend resolves it to the selected active HR/admin account. Recipient options and leave responses expose only recipient name and role, not their numeric database ID or email. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
+Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin select an active HR/admin recipient from `GET /api/v1/leaves/recipients`; submissions use `recipient_id` (legacy `recipient_key` is still accepted). Leave responses expose recipient name and role. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
 
 ## Initialize the Database
 
