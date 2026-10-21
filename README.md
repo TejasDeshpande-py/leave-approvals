@@ -89,6 +89,46 @@ Replace the sample database credentials and change `JWT_SECRET` to a long, rando
 
 The `.env` file is local configuration in `backend/` and is ignored by Git. Do not commit real credentials or production secrets.
 
+### Keep MySQL running for Workbench (Windows)
+
+MySQL Workbench is a client; opening it does not start the MySQL server. To make
+the server start automatically whenever Windows starts, register it once as a
+Windows service. The following example uses the existing data directory
+`C:\Users\tejas.deshpande\mysql-leave-data` and port `3307`. If your data
+directory is different, replace that path before running the commands.
+
+Open **PowerShell as Administrator** and run:
+
+```powershell
+$myIni = 'C:\Users\tejas.deshpande\mysql-leave-data\my.ini'
+
+@'
+[mysqld]
+basedir=C:/Program Files/MySQL/MySQL Server 8.0
+datadir=C:/Users/tejas.deshpande/mysql-leave-data
+port=3307
+bind-address=127.0.0.1
+'@ | Set-Content -Encoding ascii $myIni
+
+& 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe' --install LeaveApprovalsMySQL "--defaults-file=$myIni"
+Set-Service -Name LeaveApprovalsMySQL -StartupType Automatic
+```
+
+Restart Windows after registering the service. This lets the manually started
+server shut down before the service starts using the same data directory. After
+restarting, check that the service is running:
+
+```powershell
+Get-Service LeaveApprovalsMySQL
+```
+
+In Workbench, use the saved connection with host `127.0.0.1`, port `3307`, and
+the database account and schema from your local setup. Keep the Workbench port
+and the port in `backend/.env`'s `DATABASE_URL` the same. If the service is
+stopped, start it from Administrator PowerShell with
+`Start-Service LeaveApprovalsMySQL`. Do not start a second MySQL server against
+the same data directory.
+
 The frontend keeps access tokens in memory and clears legacy token values from `localStorage`. On startup, one `GET /api/v1/auth/me` call validates the access token or restores the session from the refresh cookie and returns the user together with a fresh access token. The refresh token is sent only in an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/v1/auth`; logout clears that cookie. For production, serve over HTTPS and set `REFRESH_COOKIE_SECURE=true`.
 
 Leave requests keep the manual text in `body`, the optional Groq rewrite in `ai_body`, and the exact text sent for review in `submitted_body`. Rephrasing never overwrites the manual text. Requests from employees, HR, or admin select an active HR/admin recipient from `GET /api/v1/leaves/recipients`; submissions use `recipient_id` (legacy `recipient_key` is still accepted). Leave responses expose recipient name and role. HR sees only requests assigned to them; admin can review all requests. The rephrase endpoint returns `ai_body` without submitting a leave request.
