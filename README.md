@@ -34,9 +34,24 @@ See [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) for the full proj
 
 The requirements file includes the application dependencies and supporting packages. `greenlet` is included for SQLAlchemy's asyncio support. The database URL uses the `aiomysql` async driver.
 
-## Setup (Bash)
+## Setup
 
-Create and activate the virtual environment from the repository root, then enter `backend/` for backend commands:
+### Windows PowerShell
+
+Run these commands from the repository root. The virtual environment is created in `.venv/`, and the remaining backend commands run from `backend/`:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+Set-Location .\backend
+python -m pip install -r requirements.txt
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+### Git Bash, macOS, or Linux
+
+Run these commands from the repository root:
 
 ```bash
 python -m venv .venv
@@ -46,10 +61,12 @@ source .venv/Scripts/activate
 python -m pip install --upgrade pip
 cd backend
 python -m pip install -r requirements.txt
-cp .env.example .env
+test -f .env || cp .env.example .env
+
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
-Edit `.env` and set `DATABASE_URL` to the MySQL database you created. The example URL is:
+The commands below should be run from `backend/`. Edit `.env` and set `DATABASE_URL` to the MySQL database you created. The example URL is:
 
 ```dotenv
 DATABASE_URL=mysql+aiomysql://leave_app:change-me@localhost:3307/leave_db
@@ -110,7 +127,7 @@ The script prompts for a password unless `SEED_PASSWORD` is set in `.env`. Use a
 
 ## Run the API
 
-Start the development server from the repository root:
+Start the development server from `backend/` (after activating the virtual environment and configuring `.env`):
 
 ```bash
 python -m uvicorn app.main:app --reload --port 8001
