@@ -418,8 +418,13 @@ Request: `{"body":"I need a day off next Friday for an appointment."}`
 
 `body` must be 3-3000 characters. Returns
 `{"ai_body":"..."}`. If `GROQ_API_KEY` is missing or the provider fails, returns
-`503`. The prompt instructs the model to preserve meaning and stated facts,
-avoid invented details, and return only the rewritten note.
+`503`. The model is prompted to treat the supplied text as untrusted note data,
+rewrite only leave-related content, and return `NOT_A_LEAVE_NOTE` for unrelated
+requests. The service rejects that marker with `422`; it also rejects empty,
+overlong, markdown-code, excessively expanded, or number-inventing responses
+with `422`. These checks reduce off-topic responses and obvious alterations,
+but do not guarantee semantic correctness; users should review the returned
+draft before submitting it.
 
 ### Leave requests
 

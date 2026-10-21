@@ -22,5 +22,13 @@ class Conflict(AppError):
     status_code, default = 409, "Conflict"
 
 
+class NotALeaveNote(AppError):
+    status_code, default = 422, "Text does not look like a leave note"
+
+
+class RephraseRejected(AppError):
+    status_code, default = 422, "Could not safely rewrite this leave note"
+
+
 class ServiceUnavailable(AppError):
     status_code, default = 503, "Service unavailable"

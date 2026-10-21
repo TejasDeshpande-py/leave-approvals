@@ -3,6 +3,16 @@ const inFlightGetRequests = new Map<string, Promise<unknown>>()
 let accessToken: string | null = null
 let refreshInFlight: Promise<string> | null = null
 
+export class ApiError extends Error {
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 export function getAccessToken() {
   return accessToken
 }
@@ -100,7 +110,7 @@ async function performRequest<T>(path: string, init: RequestInit, token: string 
       window.dispatchEvent(new Event('leave-office-auth-expired'))
     }
   }
-  if (!response.ok) throw new Error(errorMessage(payload, response.status))
+  if (!response.ok) throw new ApiError(errorMessage(payload, response.status), response.status)
   return payload as T
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { LoaderCircle, Send, Sparkles } from 'lucide-react'
 import { ChevronSelect } from '../components/ChevronSelect'
 import { leaveApi } from '../features/leaves/leaveApi'
+import { ApiError } from '../shared/api/client'
 import type { RecipientOption } from '../shared/types'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -16,6 +17,7 @@ export function LeaveComposePage() {
   const [aiBody, setAiBody] = useState('')
   const [submitVersion, setSubmitVersion] = useState<'manual' | 'ai'>('manual')
   const [error, setError] = useState('')
+  const [noteValidationError, setNoteValidationError] = useState('')
   const [success, setSuccess] = useState('')
   const [loadingRecipients, setLoadingRecipients] = useState(true)
   const [rephrasing, setRephrasing] = useState(false)
@@ -36,6 +38,7 @@ export function LeaveComposePage() {
 
   async function rephrase() {
     setError('')
+    setNoteValidationError('')
     setSuccess('')
     setRephrasing(true)
     try {
@@ -45,7 +48,9 @@ export function LeaveComposePage() {
     } catch (cause) {
       setAiBody('')
       setSubmitVersion('manual')
-      setError(cause instanceof Error ? cause.message : 'Could not rephrase this note')
+      const message = cause instanceof Error ? cause.message : 'Could not rephrase this note'
+      if (cause instanceof ApiError && cause.status === 422) setNoteValidationError(message)
+      else setError(message)
     } finally {
       setRephrasing(false)
     }
@@ -60,6 +65,7 @@ export function LeaveComposePage() {
       await leaveApi.submit({ recipient_id: Number(recipientId), leave_type: leaveType, start_date: startDate, end_date: endDate, body, ai_body: aiBody || null, submitted_body: submitVersion === 'ai' && aiBody ? aiBody : body })
       setSuccess('Leave note submitted successfully.')
       setBody('')
+      setNoteValidationError('')
       setAiBody('')
       setSubmitVersion('manual')
     } catch (cause) {
@@ -81,7 +87,7 @@ export function LeaveComposePage() {
       </div>
       <h2 className="section-label">Leave note</h2>
       <div className="body-version-grid">
-        <div className={`body-version ${submitVersion === 'manual' ? 'selected' : ''}`}><div className="version-head"><label className="version-choice"><input type="radio" name="submit-version" checked={submitVersion === 'manual'} onChange={() => setSubmitVersion('manual')} /> Your note</label><span className="version-tag">MANUAL</span></div><textarea value={body} onChange={(event) => setBody(event.target.value)} minLength={3} maxLength={3000} placeholder="Write the reason for your leave request..." required aria-label="Your leave note" /></div>
+        <div className={`body-version ${submitVersion === 'manual' ? 'selected' : ''}`}><div className="version-head"><label className="version-choice"><input type="radio" name="submit-version" checked={submitVersion === 'manual'} onChange={() => setSubmitVersion('manual')} /> Your note</label><span className="version-tag">MANUAL</span></div><textarea value={body} onChange={(event) => { setBody(event.target.value); setNoteValidationError('') }} minLength={3} maxLength={3000} placeholder="Write the reason for your leave request..." required aria-label="Your leave note" aria-invalid={Boolean(noteValidationError)} aria-describedby={noteValidationError ? 'leave-note-validation' : undefined} />{noteValidationError && <div id="leave-note-validation" className="alert" role="alert">{noteValidationError}</div>}</div>
         <div className={`body-version ${submitVersion === 'ai' ? 'selected' : ''}`}><div className="version-head"><label className="version-choice"><input type="radio" name="submit-version" checked={submitVersion === 'ai'} onChange={() => setSubmitVersion('ai')} disabled={!aiBody} /> Rephrased note</label><span className="version-tag">AI DRAFT</span></div><textarea value={aiBody} onChange={(event) => setAiBody(event.target.value)} maxLength={3000} placeholder="Use Rephrase to create a separate AI draft. Your original note remains unchanged." aria-label="AI rephrased note" /></div>
       </div>
       <div className="form-actions"><span className="helper-copy">Only the selected version is sent to your recipient.</span><div className="action-group"><button className="secondary-button" type="button" onClick={rephrase} disabled={body.trim().length < 3 || rephrasing}>{rephrasing ? <LoaderCircle className="spin" size={16} /> : <Sparkles size={16} />}{rephrasing ? 'Rephrasing...' : 'Rephrase note'}</button><button className="primary-button" type="submit" disabled={submitting || !recipientId || (submitVersion === 'ai' && !aiBody)}><Send size={15} />{submitting ? 'Submitting...' : 'Submit request'}</button></div></div>
