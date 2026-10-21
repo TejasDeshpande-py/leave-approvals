@@ -5,14 +5,12 @@ import { leaveApi } from '../features/leaves/leaveApi'
 import { ApiError } from '../shared/api/client'
 import type { RecipientOption } from '../shared/types'
 
-const today = new Date().toISOString().slice(0, 10)
-
 export function LeaveComposePage() {
   const [recipients, setRecipients] = useState<RecipientOption[]>([])
   const [recipientId, setRecipientId] = useState('')
   const [leaveType, setLeaveType] = useState('casual')
-  const [startDate, setStartDate] = useState(today)
-  const [endDate, setEndDate] = useState(today)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [body, setBody] = useState('')
   const [aiBody, setAiBody] = useState('')
   const [submitVersion, setSubmitVersion] = useState<'manual' | 'ai'>('manual')
