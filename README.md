@@ -20,7 +20,7 @@ An asynchronous REST API for employee leave requests and admin-managed account a
 | Assigned HR | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` |
 | Admin | `GET /api/v1/leaves`, `GET /api/v1/leaves/stats`, `PATCH /api/v1/leaves/{leave_id}/decision` for all requests |
 | HR/admin or the request owner | `GET /api/v1/leaves/{leave_id}` |
-| Admin | `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{user_id}` |
+| Admin | `GET /api/v1/admin/users`, `GET /api/v1/admin/users/stats`, `PATCH /api/v1/admin/users/{user_id}` |
 
 The API is mounted under `/api/v1`. Interactive API documentation is available at `/docs` when the server is running.
 

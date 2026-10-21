@@ -22,8 +22,8 @@ export const leaveApi = {
   rephrase: (body: string) => postJson<{ ai_body: string }>('/leaves/rephrase', { body }),
   submit: (draft: LeaveDraft) => postJson<LeaveRequest>('/leaves', draft),
   updateNote: (id: number, draft: LeaveNotePatch) => patchJson<LeaveRequest>(`/leaves/${id}`, draft),
-  mine: (status?: LeaveStatus) => apiRequest<Page<LeaveRequest>>(`/leaves/me?limit=100${status ? `&status=${status}` : ''}`),
-  reviewList: (status?: LeaveStatus) => apiRequest<Page<LeaveRequest>>(`/leaves?limit=100${status ? `&status=${status}` : ''}`),
+  mine: (status?: LeaveStatus, offset = 0, limit = 50) => apiRequest<Page<LeaveRequest>>(`/leaves/me?limit=${limit}&offset=${offset}${status ? `&status=${status}` : ''}`),
+  reviewList: (status?: LeaveStatus, offset = 0, limit = 50) => apiRequest<Page<LeaveRequest>>(`/leaves?limit=${limit}&offset=${offset}${status ? `&status=${status}` : ''}`),
   stats: () => apiRequest<Record<LeaveStatus, number>>('/leaves/stats'),
   decide: (id: number, status: 'approved' | 'rejected', comment?: string) => patchJson<LeaveRequest>(`/leaves/${id}/decision`, { status, comment: comment || null }),
 }

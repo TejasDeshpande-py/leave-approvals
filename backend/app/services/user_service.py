@@ -15,6 +15,9 @@ class UserService:
     async def list(self, status: UserStatus | None, role: Role | None, limit: int, offset: int):
         return await self.users.search(status=status, role=role, limit=limit, offset=offset)
 
+    async def stats(self) -> dict[str, int]:
+        return await self.users.stats()
+
     async def list_active_recipients(self, exclude_user_id: int) -> list[RecipientOption]:
         users = await self.users.list_active_recipients(exclude_user_id)
         return [

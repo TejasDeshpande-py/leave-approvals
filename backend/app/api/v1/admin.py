@@ -23,6 +23,14 @@ async def list_users(
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
+@router.get("/stats", response_model=dict[str, int])
+async def user_stats(
+    _: User = Depends(require_role(Role.admin)),
+    svc: UserService = Depends(get_user_service),
+):
+    return await svc.stats()
+
+
 @router.patch("/{user_id}", response_model=UserOut)
 async def update_user(
     user_id: int,

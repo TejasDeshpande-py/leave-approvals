@@ -69,3 +69,12 @@ class UserRepository:
             .offset(offset)
         )
         return list(rows), total or 0
+
+    async def stats(self) -> dict[str, int]:
+        counts = {status.value: 0 for status in UserStatus}
+        rows = await self.db.execute(
+            select(User.status, func.count()).group_by(User.status)
+        )
+        for status, count in rows:
+            counts[status.value] = count
+        return counts

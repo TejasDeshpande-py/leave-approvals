@@ -460,6 +460,10 @@ Available to HR and admin.
 The date filters use range-overlap semantics. HR results are always scoped to
 that HR user's assigned requests; admins see all matching requests.
 
+The frontend loads request history, review results, and admin user lists
+incrementally as users scroll; the API continues to use `limit` and `offset`
+for each batch.
+
 #### `GET /api/v1/leaves/stats`
 
 Available to HR and admin. Returns counts for all statuses, including zero
@@ -470,6 +474,7 @@ counts, e.g.:
 ```
 
 HR counts only requests assigned to them. Admin counts are global.
+The frontend uses the pending count in the Review inbox navigation badge.
 
 #### `GET /api/v1/leaves/{leave_id}`
 
@@ -533,6 +538,16 @@ Admin only.
 
 Returns a paginated list of user profiles. Password hashes are never included.
 Results are ordered newest first.
+
+#### `GET /api/v1/admin/users/stats`
+
+Admin only. Returns counts for all account statuses, including zero counts:
+
+```json
+{"pending":4,"active":9,"disabled":2}
+```
+
+The frontend uses the pending count in the User approvals navigation badge.
 
 #### `PATCH /api/v1/admin/users/{user_id}`
 
