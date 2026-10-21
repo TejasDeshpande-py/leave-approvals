@@ -72,7 +72,9 @@ frontend/
     pages/                     Login, registration, profile, leave, and review pages
     shared/
       api/client.ts            Fetch wrapper, bearer header, refresh, and request coalescing
+      approvalCounts.ts        Event name for refreshing sidebar approval counts
       types.ts                 Shared frontend domain types
+      useInfinitePage.ts       Shared offset-based lazy-scroll list loader
   package.json                 Frontend scripts and dependencies
   vite.config.ts               Vite configuration and local API proxy
 README.md                      Quick-start and high-level project information
@@ -102,6 +104,20 @@ Application exceptions are translated to JSON responses of the form
 call feature API clients, which use the shared fetch wrapper. That wrapper adds
 the bearer token, includes cookies on API requests, and retries an unauthorized
 non-auth request once after refreshing the access token.
+
+The My requests, Review inbox, and User approvals lists use
+`shared/useInfinitePage.ts` to load 50 records at a time. An
+`IntersectionObserver` requests the next offset when the user scrolls near the
+end of the list; there are no page-navigation controls. The API still enforces
+its normal `limit` and `offset` bounds, and each response's `total` is used for
+the displayed result count.
+
+The workspace sidebar displays pending counts for Review inbox and User
+approvals. Review counts come from `GET /api/v1/leaves/stats` and are scoped to
+the signed-in HR recipient or global for admins. User approval counts come from
+the admin-only `GET /api/v1/admin/users/stats`. After a decision or account
+approval/rejection, the page broadcasts the approval-count update event so the
+sidebar refreshes both counts.
 
 Vite proxies requests beginning with `/api` to `http://127.0.0.1:8001` in
 development.
