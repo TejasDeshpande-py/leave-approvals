@@ -2,11 +2,11 @@ from fastapi import APIRouter, Cookie, Depends, Response
 from fastapi.responses import Response as ResponseClass
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.api.deps import bearer, get_auth_service, get_current_user
+from app.routers.deps import bearer, get_auth_service, get_current_user
 from app.core.config import settings
 from app.core.exceptions import Unauthorized
 from app.models import User
-from app.schemas.auth import (
+from app.auth.schemas import (
     LoginRequest,
     ChangePasswordRequest,
     MessageOut,
@@ -15,7 +15,7 @@ from app.schemas.auth import (
     TokenOut,
     UserOut,
 )
-from app.services.auth_service import AuthService
+from app.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 REFRESH_COOKIE = "leave_office_refresh"

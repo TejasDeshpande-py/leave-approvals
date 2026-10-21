@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.core.exceptions import Conflict, Forbidden, NotFound
-from app.core.security import decode_recipient_key
+from app.auth.security import decode_recipient_key
 from app.enums import LeaveStatus, Role
 from app.models import LeaveRequest, User
 from app.repositories.leave_repo import LeaveRepository

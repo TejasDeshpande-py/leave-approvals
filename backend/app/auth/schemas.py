@@ -1,3 +1,5 @@
+"""Authentication request and response schemas."""
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.enums import Role, UserStatus

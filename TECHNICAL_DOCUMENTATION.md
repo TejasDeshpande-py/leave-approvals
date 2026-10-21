@@ -23,17 +23,13 @@ The API is mounted at `/api/v1`. Interactive API documentation is available at
 ```text
 backend/
   app/
-    api/
-      deps.py                 Authentication, role guards, and dependency factories
-      v1/
-        admin.py              Admin user-management endpoints
-        auth.py               Registration, login, session, and password endpoints
-        leaves.py             Leave requests, review, statistics, and rephrasing
-        router.py             API router composition
+    auth/
+      schemas.py              Authentication request and response schemas
+      security.py             Password hashing, JWT, and recipient-key utilities
+      service.py              Registration, login, session, and password workflows
     core/
       config.py               Environment-backed application settings
       exceptions.py           Application exceptions and HTTP status mapping
-      security.py             Password hashing and token/recipient-key utilities
     db/
       base.py                 SQLAlchemy declarative base
       session.py              Async engine, session factory, and DB dependency
@@ -44,11 +40,15 @@ backend/
       user_repo.py            User database queries
       leave_repo.py           Leave database queries and atomic updates
     schemas/
-      auth.py                 Authentication and user request/response schemas
       admin.py                Admin user-management schemas
       leave.py                Leave, recipient, review, and pagination schemas
+    routers/
+      admin.py                Admin user-management endpoints
+      auth.py                 Registration, login, session, and password endpoints
+      deps.py                 Authentication, role guards, and dependency factories
+      leaves.py               Leave requests, review, statistics, and rephrasing
+      router.py               API router composition
     services/
-      auth_service.py         Registration, login, session, password workflows
       leave_service.py        Leave request and review business rules
       rephrase_service.py     Groq rephrase integration
       user_service.py         User administration and recipient selection
@@ -87,7 +87,7 @@ TECHNICAL_DOCUMENTATION.md     This reference
 
 1. **Router** parses HTTP input, applies dependencies, and selects response
    schemas.
-2. **Dependency layer** (`api/deps.py`) resolves the current user, enforces
+2. **Dependency layer** (`routers/deps.py`) resolves the current user, enforces
    allowed roles, and constructs services and repositories.
 3. **Service layer** applies application rules such as date overlap checks,
    role-specific review visibility, and password verification.
@@ -95,8 +95,11 @@ TECHNICAL_DOCUMENTATION.md     This reference
 5. **ORM models** map application entities to MySQL tables.
 
 The API uses Pydantic models for request validation and response serialization.
-Application exceptions are translated to JSON responses of the form
-`{"detail":"..."}`.
+Authentication-specific schemas, token/password security helpers, and the
+authentication service live in `auth/`. HTTP handlers and their shared
+dependencies live in `routers/`; `routers/router.py` combines them, and
+`main.py` mounts the combined router at `/api/v1`. Application exceptions are
+translated to JSON responses of the form `{"detail":"..."}`.
 
 ### Frontend
 

@@ -2,7 +2,7 @@ import jwt
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import Conflict, Forbidden, Unauthorized
-from app.core.security import (
+from app.auth.security import (
     AccessTokenClaims,
     DUMMY_HASH,
     TokenPair,

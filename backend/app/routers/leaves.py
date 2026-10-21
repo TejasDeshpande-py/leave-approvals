@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import (
+from app.routers.deps import (
     get_current_user,
     get_leave_service,
     get_rephrase_service,

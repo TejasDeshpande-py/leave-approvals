@@ -4,13 +4,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import Forbidden, Unauthorized
-from app.core.security import decode_access_token
+from app.auth.security import decode_access_token
 from app.db.session import get_db
 from app.enums import ROLE_CLAIM_BY_ROLE, Role, UserStatus
 from app.models import User
 from app.repositories.leave_repo import LeaveRepository
 from app.repositories.user_repo import UserRepository
-from app.services.auth_service import AuthService
+from app.auth.service import AuthService
 from app.services.leave_service import LeaveService
 from app.services.rephrase_service import RephraseService
 from app.services.user_service import UserService

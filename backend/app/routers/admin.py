@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import get_user_service, require_role
+from app.routers.deps import get_user_service, require_role
 from app.enums import Role, UserStatus
 from app.models import User
 from app.schemas.admin import UserPage, UserUpdate
-from app.schemas.auth import UserOut
+from app.auth.schemas import UserOut
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])

@@ -5,7 +5,7 @@ import getpass
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.security import hash_password
+from app.auth.security import hash_password
 from app.db.session import SessionLocal, engine
 from app.enums import Role, UserStatus
 from app.models import User

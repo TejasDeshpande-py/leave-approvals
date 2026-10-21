@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, model_validator
 
 from app.enums import Role
-from app.schemas.auth import UserOut
+from app.auth.schemas import UserOut
 
 
 class UserUpdate(BaseModel):
